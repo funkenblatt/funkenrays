@@ -97,12 +97,3 @@ void dotrace(int w, int h, sphere spheres[], int nspheres,
     }
   }
 }
-
-struct tgatag {
-  unsigned char stuff[12];
-  unsigned short width;
-  unsigned short height;
-  unsigned char depth;
-  unsigned char junk;
-};
-
