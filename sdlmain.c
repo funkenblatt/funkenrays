@@ -30,6 +30,11 @@ int main(int argc, char *argv[])
   printf("%08x\n", screen->format->Gmask);
   printf("%08x\n", screen->format->Bmask);
 
+  SDL_LockSurface(screen);
+  dotrace(640, 480, spheres, 5, lights, 2,
+          screen->pixels);
+  SDL_UnlockSurface(screen);
+
   while (1) {
     int changes = 0;
     SDL_WaitEvent(&e);
