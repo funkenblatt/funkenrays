@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
   dotrace(640, 480, spheres, 5, lights, 2,
           screen->pixels);
   SDL_UnlockSurface(screen);
+  SDL_Flip(screen);
 
   while (1) {
     int changes = 0;
