@@ -76,7 +76,7 @@ unsigned int find_color(ray *r, sphere spheres[], int nspheres,
   }
   unsigned int val = (out > 1.0 ? 1.0 : out)*255;
   val |= (val << 8);
-  val |= (val << 8);
+  val |= (val << 16);
   return val;
 }
 
