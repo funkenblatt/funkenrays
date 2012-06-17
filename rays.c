@@ -1,11 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-typedef struct { double x, y, z, pad; } vec;
-typedef struct { vec o; double r; } sphere ;
-typedef struct { vec o, d; } ray;
-typedef struct { vec o; double strength; } light;
+#include "rays.h"
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define vsub(a, b) {a.x - b.x, a.y - b.y, a.z - b.z}
@@ -54,7 +50,7 @@ void jitter(vec *v)
   v->z += ((double) rand() / RAND_MAX)*2 - 1;
 }
 
-unsigned char find_color(ray *r, sphere spheres[], int nspheres, 
+unsigned int find_color(ray *r, sphere spheres[], int nspheres, 
                         light lights[], int nlights)
 {
   double s, out=0;
@@ -78,20 +74,23 @@ unsigned char find_color(ray *r, sphere spheres[], int nspheres,
       }
     }
   }
-  return (out > 1.0 ? 1.0 : out) * 255;
+  unsigned int val = (out > 1.0 ? 1.0 : out)*255;
+  val |= (val << 8);
+  val |= (val << 8);
+  return val;
 }
 
 // Camera is at 0,0,0, pointing in the 0,1,0 direction.
 // Viewing plane is at 0,1,0
 void dotrace(int w, int h, sphere spheres[], int nspheres,
              light lights[], int nlights,
-             unsigned char *pixels)
+             unsigned int *pixels)
 {
   double aspect = (double)h/w;
 #pragma omp parallel for schedule(dynamic, 1)
   for (int j=0; j<h; j++) {
     ray r = {{0,0,0}, {0,1.3,0}};
-    r.d.z = ((double)j*2/(h-1) - 1.0)*aspect;
+    r.d.z = ((double)j*2/(h-1) - 1.0)*aspect*-1;
     for (int i=0; i<w; i++) {
       r.d.x = ((double)i*2/(w-1) - 1.0);
       pixels[j*w+i] = find_color(&r, spheres, nspheres, lights, nlights);
@@ -107,29 +106,3 @@ struct tgatag {
   unsigned char junk;
 };
 
-int main()
-{
-  int w = 640;
-  int h = 480;
-  unsigned char pixels[w*h];
-  struct tgatag header = {{0,0,3,0,0,0,0,0,0,0,0,0},
-                           w, h, 8, 16};
-  int i;
-  dotrace(w, h, 
-          (sphere []) { 
-            {{3*sin(M_PI/6), 11-3*cos(M_PI/6), 0}, 1.0},
-            {{0, 11, 0}, 3.0},
-            {{0, 11-3*cos(M_PI/6), 3*sin(M_PI/6)}, 1.0},
-            {{0, 11, -2005}, 2000},
-            {{-5, 11, -4}, 2}
-          }, 5,
-          (light []) { 
-            {{-2, 6, 8}, 7},
-            {{0, 4, -1}, 1}
-          }, 2,
-          pixels);
-
-  fwrite(&header, 1, sizeof(header), stdout);
-  fwrite(pixels, 1, w*h, stdout);
-  return 0;
-}
