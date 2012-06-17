@@ -4,7 +4,7 @@
 #include <math.h>
 
 
-int main()
+int main(int argc, char *argv[])
 {
   SDL_Surface *screen;
   SDL_Event e;
