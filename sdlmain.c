@@ -43,8 +43,7 @@ int main(int argc, char *argv[])
       if (e.type==SDL_QUIT) return 0;
       else if (e.type==SDL_MOUSEMOTION) {
         if (e.motion.state & SDL_BUTTON(1)) {
-          spheres[4].o.x += (e.motion.xrel / 50.0);
-          spheres[4].o.z -= (e.motion.yrel / 50.0);
+          spheres[4].o += (vec) { (e.motion.xrel / 50.0), 0, -(e.motion.yrel / 50.0), 0};
           changes = 1;
         }
       }

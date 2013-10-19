@@ -4,17 +4,17 @@
 #include "rays.h"
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#define vsub(a, b) {a.x - b.x, a.y - b.y, a.z - b.z}
-#define vadd(a, b) {a.x + b.x, a.y + b.y, a.z + b.z}
-#define vscale(a, b) {b*a.x, b*a.y, b*a.z}
+#define vsub(a, b) (a - b)
+#define vadd(a, b) (a + b)
 
-double vdot(vec *a, vec *b) { return a->x*b->x + a->y*b->y + a->z*b->z; }
+vec vscale(vec a, float b) { return (vec) {b,b,b,b} * a; }
+float vdot(vec a, vec b) { return __builtin_ia32_dpps(a, b, 0x77)[0]; }
 
 double ray_sphere_hit(ray *r, sphere *s)
 {
   vec so = vsub(s->o, r->o);
-  double so_dot_d = vdot(&r->d, &so), so2 = vdot(&so, &so), 
-    rd2 = vdot(&r->d, &r->d);
+  double so_dot_d = vdot(r->d, so), so2 = vdot(so, so), 
+    rd2 = vdot(r->d, r->d);
   double descr = (s->r*s->r - so2)*rd2 + so_dot_d*so_dot_d;
   if (descr < 0) return -1.0;
   descr = sqrt(descr);
@@ -37,17 +37,10 @@ sphere * find_hit(sphere spheres[], int n, ray *r, double *out_s)
   return minsphere;
 }
 
-void normalize(vec *v)
+vec normalize(vec v)
 {
-  double mag = sqrt(vdot(v, v));
-  v->x /= mag; v->y /= mag; v->z /= mag;
-}
-
-void jitter(vec *v)
-{
-  v->x += ((double) rand() / RAND_MAX)*2 - 1;
-  v->y += ((double) rand() / RAND_MAX)*2 - 1;
-  v->z += ((double) rand() / RAND_MAX)*2 - 1;
+  float invmag = 1/sqrt(vdot(v, v));
+  return v * ((vec) {invmag, invmag, invmag, 0});
 }
 
 unsigned int find_color(ray *r, sphere spheres[], int nspheres, 
@@ -66,10 +59,10 @@ unsigned int find_color(ray *r, sphere spheres[], int nspheres,
       sphere *shadow = find_hit(spheres, nspheres, &shadow_ray, &s2);
       if (!shadow || s2 > 1) {
         vec normal = vsub(hit_point, hit->o);
-        double l = vdot(&shadow_ray.d, &normal);
+        double l = vdot(shadow_ray.d, normal);
         if (l>0) {
           out += lights[i].strength * l / 
-            vdot(&shadow_ray.d, &shadow_ray.d) / sqrt(vdot(&normal, &normal));
+            vdot(shadow_ray.d, shadow_ray.d) / sqrt(vdot(normal, normal));
         }
       }
     }
@@ -89,10 +82,9 @@ void dotrace(int w, int h, sphere spheres[], int nspheres,
   double aspect = (double)h/w;
 #pragma omp parallel for schedule(dynamic, 1)
   for (int j=0; j<h; j++) {
-    ray r = {{0,0,0}, {0,1.3,0}};
-    r.d.z = ((double)j*2/(h-1) - 1.0)*aspect*-1;
+
     for (int i=0; i<w; i++) {
-      r.d.x = ((double)i*2/(w-1) - 1.0);
+      ray r = {{0,0,0}, {((double)i*2/(w-1) - 1.0),1.3,((float)j*2/(h-1) - 1.0)*aspect*-1}};
       pixels[j*w+i] = find_color(&r, spheres, nspheres, lights, nlights);
     }
   }
